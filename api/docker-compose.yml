@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      - MODEL_NAME=${MODEL_NAME:-gemma-3-1b-it}
+    volumes:
+      - ${MODEL_DIR:-./models}:/models:ro
+    command: python main.py --model /models/${MODEL_FILE:-model.litertlm}
