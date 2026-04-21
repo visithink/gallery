@@ -35,22 +35,12 @@ See `skills/README.md` for creating agent skills. Skills support:
 
 ## API Server
 
-OpenAI-compatible API server in `api/` directory using LiteRT-LM:
+OpenAI-compatible HTTP server embedded in the app (Ktor + LiteRT-LM):
 
-```bash
-cd api
-pip install -r requirements.txt
-
-# Download and run
-python main.py --download gemma-3-1b-it
-
-# Or use existing model
-python main.py --model /path/to/model.litertlm
-```
-
-Endpoints: `/v1/chat/completions`, `/v1/completions`, `/v1/models`
-
-See `api/README.md` for details.
+- Location: `Android/src/app/src/main/java/com/google/ai/edge/gallery/apiserver/`
+- Endpoints: `/v1/chat/completions`, `/v1/completions`, `/v1/models`
+- Starts HTTP server on device, accessible via local network
+- Uses existing LiteRT model inference
 
 ## Notes
 
