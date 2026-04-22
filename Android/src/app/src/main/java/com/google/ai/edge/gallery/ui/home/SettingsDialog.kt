@@ -47,6 +47,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -62,6 +63,7 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -88,6 +90,8 @@ import com.google.ai.edge.gallery.BuildConfig
 import com.google.ai.edge.gallery.R
 import com.google.ai.edge.gallery.proto.Theme
 import com.google.ai.edge.gallery.apiserver.ApiServerViewModel
+import com.google.ai.edge.gallery.data.EMPTY_MODEL
+import com.google.ai.edge.gallery.runtime.runtimeHelper
 import com.google.ai.edge.gallery.ui.common.ClickableLink
 import com.google.ai.edge.gallery.ui.common.tos.AppTosDialog
 import com.google.ai.edge.gallery.ui.modelmanager.ModelManagerViewModel
@@ -121,6 +125,19 @@ fun SettingsDialog(
   val focusRequester = remember { FocusRequester() }
   val interactionSource = remember { MutableInteractionSource() }
   var showTos by remember { mutableStateOf(false) }
+
+  val uiState by modelManagerViewModel.uiState.collectAsState()
+  val selectedModel = uiState.selectedModel
+
+  LaunchedEffect(selectedModel) {
+    val model = selectedModel
+    val isInit = uiState.isModelInitialized(model)
+    apiServerViewModel.initialize(
+      modelHelper = if (isInit) model.runtimeHelper else null,
+      model = if (model != EMPTY_MODEL && isInit) model else null,
+      port = apiServerViewModel.port.value,
+    )
+  }
 
   Dialog(onDismissRequest = onDismissed) {
     val focusManager = LocalFocusManager.current
@@ -311,10 +328,24 @@ fun SettingsDialog(
             modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
             verticalArrangement = Arrangement.spacedBy(8.dp),
           ) {
-            Text(
-              "API Server",
-              style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Medium),
-            )
+            Row(
+              modifier = Modifier.fillMaxWidth(),
+              horizontalArrangement = Arrangement.SpaceBetween,
+              verticalAlignment = Alignment.CenterVertically,
+            ) {
+              Text(
+                "API Server",
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Medium),
+              )
+              IconButton(
+                onClick = { apiServerViewModel.refreshFromModelManager(modelManagerViewModel) },
+              ) {
+                Icon(
+                  imageVector = Icons.Rounded.Refresh,
+                  contentDescription = "Refresh model",
+                )
+              }
+            }
             Text(
               "Start an OpenAI-compatible HTTP server on this device. Load a model in a chat session first, then start the server.",
               style = MaterialTheme.typography.bodySmall,

@@ -20,8 +20,10 @@ import android.content.Context
 import android.net.wifi.WifiManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.ai.edge.gallery.data.EMPTY_MODEL
 import com.google.ai.edge.gallery.data.Model
 import com.google.ai.edge.gallery.runtime.LlmModelHelper
+import com.google.ai.edge.gallery.runtime.runtimeHelper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -41,20 +43,38 @@ class ApiServerViewModel : ViewModel() {
     private val _serverUrl = MutableStateFlow("")
     val serverUrl: StateFlow<String> = _serverUrl.asStateFlow()
 
-    private val _statusMessage = MutableStateFlow("")
-    val statusMessage: StateFlow<String> = _statusMessage.asStateFlow()
+private val _statusMessage = MutableStateFlow("")
+  val statusMessage: StateFlow<String> = _statusMessage.asStateFlow()
 
-    fun initialize(
-        modelHelper: LlmModelHelper?,
-        model: Model?,
-        port: Int = 8000,
-    ) {
-        this.modelHelper = modelHelper
-        this.currentModel = model
-        _port.value = port
+  fun initialize(
+    modelHelper: LlmModelHelper?,
+    model: Model?,
+    port: Int = 8000,
+  ) {
+    this.modelHelper = modelHelper
+    this.currentModel = model
+    _port.value = port
+  }
+
+  fun refreshFromModelManager(modelManagerViewModel: com.google.ai.edge.gallery.ui.modelmanager.ModelManagerViewModel) {
+    val uiState = modelManagerViewModel.uiState.value
+    val model = uiState.selectedModel
+    val isInit = uiState.isModelInitialized(model)
+    if (model != EMPTY_MODEL && isInit) {
+      initialize(modelHelper = model.runtimeHelper, model = model, port = _port.value)
+      return
     }
+    val anyInitializedModel = uiState.modelInitializationStatus.entries
+      .filter { it.value.status == com.google.ai.edge.gallery.ui.modelmanager.ModelInitializationStatusType.INITIALIZED }
+      .keys
+      .firstOrNull()
+      ?.let { modelName -> uiState.modelDownloadStatus[modelName]?.model }
+    if (anyInitializedModel != null) {
+      initialize(modelHelper = anyInitializedModel.runtimeHelper, model = anyInitializedModel, port = _port.value)
+    }
+  }
 
-    fun startServer(context: Context) {
+  fun startServer(context: Context) {
         if (_isRunning.value) return
 
         viewModelScope.launch {
