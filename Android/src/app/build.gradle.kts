@@ -69,6 +69,18 @@ android {
   }
 }
 
+androidComponents {
+  onVariants { variant ->
+    variant.packaging.resources.excludes.addAll(
+      listOf(
+        "META-INF/INDEX.LIST",
+        "META-INF/DEPENDENCIES",
+        "META-INF/io.netty.versions.properties",
+      )
+    )
+  }
+}
+
 dependencies {
   implementation(libs.androidx.core.ktx)
   implementation(libs.androidx.lifecycle.runtime.ktx)

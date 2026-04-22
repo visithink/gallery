@@ -24,10 +24,9 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
-import io.ktor.server.application.ApplicationCallPipeline
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.call
 import io.ktor.server.application.install
-import io.ktor.server.engine.ApplicationEngine
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
@@ -51,7 +50,7 @@ class ApiServer(
     private val getModelHelper: () -> LlmModelHelper?,
     private val getCurrentModel: () -> Model?,
 ) {
-    private var server: ApplicationEngine? = null
+    private var server: Any? = null
     private var isRunning = false
     private val requestCounter = AtomicInteger(0)
 
@@ -65,7 +64,9 @@ class ApiServer(
         if (isRunning) return true
 
         return try {
-            server = embeddedServer(Netty, port = port, module = Application::module).also {
+            server = embeddedServer(Netty, port = port) {
+                module()
+            }.also {
                 it.start(wait = false)
             }
             isRunning = true
@@ -78,7 +79,7 @@ class ApiServer(
     }
 
     fun stop() {
-        server?.stop(1000, 2000)
+        (server as? io.ktor.server.engine.EmbeddedServer<*, *>)?.stop(1000, 2000)
         server = null
         isRunning = false
         Log.d(TAG, "API server stopped")
@@ -101,6 +102,7 @@ class ApiServer(
                 val model = getCurrentModel()
                 call.respond(
                     ModelList(
+                        objectType = "list",
                         data = if (model != null) {
                             listOf(ModelInfo(id = model.name))
                         } else {
@@ -126,9 +128,9 @@ class ApiServer(
                 val requestId = "chatcmpl-${System.currentTimeMillis()}"
 
                 if (request.stream) {
-                    handleStreamingChat(request, requestId, model.name, modelHelper, model)
+                    handleStreamingChat(call, request, requestId, model.name, modelHelper, model)
                 } else {
-                    handleChatCompletion(request, requestId, model.name, modelHelper, model)
+                    handleChatCompletion(call, request, requestId, model.name, modelHelper, model)
                 }
             }
 
@@ -147,12 +149,13 @@ class ApiServer(
                 val request = call.receive<CompletionRequest>()
                 val requestId = "cmpl-${System.currentTimeMillis()}"
 
-                handleCompletion(request, requestId, model.name, modelHelper, model)
+                handleCompletion(call, request, requestId, model.name, modelHelper, model)
             }
         }
     }
 
     private suspend fun handleChatCompletion(
+        call: ApplicationCall,
         request: ChatCompletionRequest,
         requestId: String,
         modelName: String,
@@ -168,6 +171,7 @@ class ApiServer(
         call.respond(
             ChatCompletionResponse(
                 id = requestId,
+                objectType = "chat.completion",
                 created = System.currentTimeMillis() / 1000,
                 model = modelName,
                 choices = listOf(
@@ -180,6 +184,7 @@ class ApiServer(
     }
 
     private suspend fun handleStreamingChat(
+        call: ApplicationCall,
         request: ChatCompletionRequest,
         requestId: String,
         modelName: String,
@@ -197,6 +202,7 @@ class ApiServer(
             flow.collect { chunk ->
                 val event = ChatCompletionChunk(
                     id = requestId,
+                    objectType = "chat.completion.chunk",
                     created = System.currentTimeMillis() / 1000,
                     model = modelName,
                     choices = listOf(
@@ -214,6 +220,7 @@ class ApiServer(
     }
 
     private suspend fun handleCompletion(
+        call: ApplicationCall,
         request: CompletionRequest,
         requestId: String,
         modelName: String,
@@ -227,6 +234,7 @@ class ApiServer(
         call.respond(
             CompletionResponse(
                 id = requestId,
+                objectType = "text_completion",
                 created = System.currentTimeMillis() / 1000,
                 model = modelName,
                 choices = listOf(

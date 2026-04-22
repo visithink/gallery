@@ -57,7 +57,7 @@ data class ChatCompletionChoice(
 @Serializable
 data class ChatCompletionChunk(
     val id: String,
-    val object: String = "chat.completion.chunk",
+    @SerialName("object") val objectType: String = "chat.completion.chunk",
     val created: Long,
     val model: String,
     val choices: List<ChatCompletionDelta>,
@@ -93,7 +93,7 @@ data class Usage(
 @Serializable
 data class ChatCompletionResponse(
     val id: String,
-    val object: String = "chat.completion",
+    @SerialName("object") val objectType: String = "chat.completion",
     val created: Long,
     val model: String,
     val choices: List<ChatCompletionChoice>,
@@ -103,7 +103,7 @@ data class ChatCompletionResponse(
 @Serializable
 data class CompletionResponse(
     val id: String,
-    val object: String = "text_completion",
+    @SerialName("object") val objectType: String = "text_completion",
     val created: Long,
     val model: String,
     val choices: List<CompletionChoice>,
@@ -113,14 +113,14 @@ data class CompletionResponse(
 @Serializable
 data class ModelInfo(
     val id: String,
-    val object: String = "model",
+    @SerialName("object") val objectType: String = "model",
     val created: Long = 0,
     @SerialName("owned_by") val ownedBy: String = "google",
 )
 
 @Serializable
 data class ModelList(
-    val object: String = "list",
+    @SerialName("object") val objectType: String = "list",
     val data: List<ModelInfo>,
 )
 
