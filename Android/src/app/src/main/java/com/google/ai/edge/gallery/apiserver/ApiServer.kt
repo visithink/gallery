@@ -64,7 +64,7 @@ class ApiServer(
         if (isRunning) return true
 
         return try {
-            server = embeddedServer(Netty, port = port) {
+            server = embeddedServer(Netty, port = port, host = "0.0.0.0") {
                 module()
             }.also {
                 it.start(wait = false)

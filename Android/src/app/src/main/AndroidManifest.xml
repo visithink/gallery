@@ -59,6 +59,7 @@
         android:label="Edge Gallery"
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
+        android:usesCleartextTraffic="true"
         android:theme="@style/Theme.Gallery"
         tools:targetApi="31">
         <!--

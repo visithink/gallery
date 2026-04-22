@@ -26,6 +26,15 @@ import javax.inject.Inject
 @HiltAndroidApp
 class GalleryApplication : Application() {
 
+  companion object {
+    @Volatile var isFirebaseAvailable: Boolean = false
+      private set
+
+    fun markFirebaseUnavailable() {
+      isFirebaseAvailable = false
+    }
+  }
+
   @Inject lateinit var dataStoreRepository: DataStoreRepository
 
   override fun onCreate() {
@@ -34,6 +43,6 @@ class GalleryApplication : Application() {
     // Load saved theme.
     ThemeSettings.themeOverride.value = dataStoreRepository.readTheme()
 
-    FirebaseApp.initializeApp(this)
+    isFirebaseAvailable = FirebaseApp.initializeApp(this) != null
   }
 }

@@ -25,15 +25,21 @@ private var hasLoggedAnalyticsWarning = false
 
 val firebaseAnalytics: FirebaseAnalytics?
   get() =
+    if (!GalleryApplication.isFirebaseAvailable) {
+      null
+    } else {
     runCatching { Firebase.analytics }
       .onFailure { exception ->
         // Firebase.analytics can throw an exception if goolgle-services is not set up, e.g.,
         // missing google-services.json.
         if (!hasLoggedAnalyticsWarning) {
           Log.w("AGAnalyticsFirebase", "Firebase Analytics is not available", exception)
+          hasLoggedAnalyticsWarning = true
         }
+        GalleryApplication.markFirebaseUnavailable()
       }
       .getOrNull()
+    }
 
 enum class GalleryEvent(val id: String) {
   CAPABILITY_SELECT(id = "capability_select"),
