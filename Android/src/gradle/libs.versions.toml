@@ -43,6 +43,7 @@ mlkit-genai-prompt = "1.0.0-beta2"  # Ref: https://developers.google.com/ml-kit/
 ktor = "3.0.0"
 ktorServerCore = "3.0.0"
 ktorServerNetty = "3.0.0"
+ktorServerCio = "3.0.0"
 ktorContentNegotiation = "3.0.0"
 ktorSerializationJson = "3.0.0"
 
@@ -100,6 +101,7 @@ moshi-kotlin-codegen = { group = "com.squareup.moshi", name = "moshi-kotlin-code
 mlkit-genai-prompt = { group = "com.google.mlkit", name = "genai-prompt", version.ref = "mlkit-genai-prompt" }
 ktor-server-core = { group = "io.ktor", name = "ktor-server-core", version.ref = "ktor" }
 ktor-server-netty = { group = "io.ktor", name = "ktor-server-netty", version.ref = "ktorServerNetty" }
+ktor-server-cio = { group = "io.ktor", name = "ktor-server-cio", version.ref = "ktorServerCio" }
 ktor-content-negotiation = { group = "io.ktor", name = "ktor-server-content-negotiation", version.ref = "ktorContentNegotiation" }
 ktor-serialization-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktorSerializationJson" }
 

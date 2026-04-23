@@ -27,8 +27,9 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.call
 import io.ktor.server.application.install
+import io.ktor.server.cio.CIO
+import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.engine.embeddedServer
-import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
@@ -49,8 +50,9 @@ class ApiServer(
     private val port: Int = 8000,
     private val getModelHelper: () -> LlmModelHelper?,
     private val getCurrentModel: () -> Model?,
+    private val getAvailableModels: () -> List<Model>,
 ) {
-    private var server: Any? = null
+    private var server: EmbeddedServer<*, *>? = null
     private var isRunning = false
     private val requestCounter = AtomicInteger(0)
 
@@ -64,11 +66,11 @@ class ApiServer(
         if (isRunning) return true
 
         return try {
-            server = embeddedServer(Netty, port = port, host = "0.0.0.0") {
-                module()
-            }.also {
-                it.start(wait = false)
+            val serverInstance = embeddedServer(CIO, port = port, host = "0.0.0.0") {
+                module(this)
             }
+            serverInstance.start(wait = false)
+            server = serverInstance
             isRunning = true
             Log.d(TAG, "API server started on port $port")
             true
@@ -79,35 +81,31 @@ class ApiServer(
     }
 
     fun stop() {
-        (server as? io.ktor.server.engine.EmbeddedServer<*, *>)?.stop(1000, 2000)
+        server?.stop(1000, 2000)
         server = null
         isRunning = false
         Log.d(TAG, "API server stopped")
     }
 
-    private fun Application.module() {
-        install(ContentNegotiation) {
+    private fun module(application: Application) {
+        application.install(ContentNegotiation) {
             json(Json {
                 ignoreUnknownKeys = true
                 encodeDefaults = true
             })
         }
 
-        routing {
+        application.routing {
             get("/health") {
                 call.respond(mapOf("status" to "healthy", "model" to (getCurrentModel()?.name ?: "none")))
             }
 
             get("/v1/models") {
-                val model = getCurrentModel()
+                val models = getAvailableModels()
                 call.respond(
                     ModelList(
                         objectType = "list",
-                        data = if (model != null) {
-                            listOf(ModelInfo(id = model.name))
-                        } else {
-                            emptyList()
-                        }
+                        data = models.map { model -> ModelInfo(id = model.name) }
                     )
                 )
             }

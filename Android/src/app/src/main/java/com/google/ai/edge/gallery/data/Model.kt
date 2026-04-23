@@ -17,6 +17,7 @@
 package com.google.ai.edge.gallery.data
 
 import android.content.Context
+import com.google.ai.edge.gallery.common.resolveAppFilesDir
 import com.google.gson.annotations.SerializedName
 import java.io.File
 
@@ -297,8 +298,9 @@ data class Model(
   }
 
   fun getPath(context: Context, fileName: String = downloadFileName): String {
+    val appFilesDir = resolveAppFilesDir(context).absolutePath
     if (imported) {
-      return listOf(context.getExternalFilesDir(null)?.absolutePath ?: "", fileName)
+      return listOf(appFilesDir, fileName)
         .joinToString(File.separator)
     }
 
@@ -308,7 +310,7 @@ data class Model(
 
     if (localFileRelativeDirPathOverride.isNotEmpty()) {
       return listOf(
-          context.getExternalFilesDir(null)?.absolutePath ?: "",
+          appFilesDir,
           localFileRelativeDirPathOverride,
           fileName,
         )
@@ -316,7 +318,7 @@ data class Model(
     }
 
     val baseDir =
-      listOf(context.getExternalFilesDir(null)?.absolutePath ?: "", normalizedName, version)
+      listOf(appFilesDir, normalizedName, version)
         .joinToString(File.separator)
     return if (this.isZip && this.unzipDir.isNotEmpty()) {
       listOf(baseDir, this.unzipDir).joinToString(File.separator)

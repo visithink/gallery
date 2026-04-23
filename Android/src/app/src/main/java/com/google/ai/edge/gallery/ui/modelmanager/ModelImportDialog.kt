@@ -62,6 +62,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.google.ai.edge.gallery.R
 import com.google.ai.edge.gallery.common.isPixel10
+import com.google.ai.edge.gallery.common.resolveAppFilesDir
 import com.google.ai.edge.gallery.data.Accelerator
 import com.google.ai.edge.gallery.data.BooleanSwitchConfig
 import com.google.ai.edge.gallery.data.Config
@@ -410,15 +411,16 @@ private fun importModel(
     // Get the last component of the uri path as the imported file name.
     val decodedUri = URLDecoder.decode(uri.toString(), StandardCharsets.UTF_8.name())
     Log.d(TAG, "importing model from $decodedUri. File name: $fileName. File size: $fileSize")
+    val appFilesDir = resolveAppFilesDir(context)
 
     // Create <app_external_dir>/imports if not exist.
-    val importsDir = File(context.getExternalFilesDir(null), IMPORTS_DIR)
+    val importsDir = File(appFilesDir, IMPORTS_DIR)
     if (!importsDir.exists()) {
       importsDir.mkdirs()
     }
 
     // Import by copying the file over.
-    val outputFile = File(context.getExternalFilesDir(null), "$IMPORTS_DIR/$fileName")
+    val outputFile = File(appFilesDir, "$IMPORTS_DIR/$fileName")
     val outputStream = FileOutputStream(outputFile)
     val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
     var bytesRead: Int

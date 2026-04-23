@@ -28,6 +28,7 @@ import com.google.ai.edge.gallery.R
 import com.google.ai.edge.gallery.common.ProjectConfig
 import com.google.ai.edge.gallery.common.getJsonResponse
 import com.google.ai.edge.gallery.common.isAICoreSupported
+import com.google.ai.edge.gallery.common.resolveAppFilesDir
 import com.google.ai.edge.gallery.customtasks.common.CustomTask
 import com.google.ai.edge.gallery.data.Accelerator
 import com.google.ai.edge.gallery.data.BuiltInTaskId
@@ -194,7 +195,8 @@ constructor(
   private val customTasks: Set<@JvmSuppressWildcards CustomTask>,
   @ApplicationContext private val context: Context,
 ) : ViewModel() {
-  private val externalFilesDir = context.getExternalFilesDir(null)
+  private val externalFilesDir: File
+    get() = resolveAppFilesDir(context)
   protected val _uiState = MutableStateFlow(createEmptyUiState())
   open val uiState = _uiState.asStateFlow()
 
@@ -1322,12 +1324,8 @@ constructor(
   }
 
   private fun isFileInExternalFilesDir(fileName: String): Boolean {
-    if (externalFilesDir != null) {
-      val file = File(externalFilesDir, fileName)
-      return file.exists()
-    } else {
-      return false
-    }
+    val file = File(externalFilesDir, fileName)
+    return file.exists()
   }
 
   private fun isFileInDataLocalTmpDir(fileName: String): Boolean {
@@ -1347,9 +1345,8 @@ constructor(
    * prefix.
    */
   private fun deleteFilesFromImportDir(fileName: String) {
-    val dir = context.getExternalFilesDir(null) ?: return
-
-    val prefixAbsolutePath = "${context.getExternalFilesDir(null)}${File.separator}$fileName"
+    val dir = externalFilesDir
+    val prefixAbsolutePath = "${dir}${File.separator}$fileName"
     val filesToDelete =
       File(dir, IMPORTS_DIR).listFiles { dirFile, name ->
         File(dirFile, name).absolutePath.startsWith(prefixAbsolutePath)

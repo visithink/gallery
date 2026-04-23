@@ -53,6 +53,7 @@ fun ApiServerScreen(
         viewModel.initialize(
             modelHelper = modelHelper as? com.google.ai.edge.gallery.runtime.LlmModelHelper,
             model = currentModel as? com.google.ai.edge.gallery.data.Model,
+            availableModels = listOfNotNull(currentModel as? com.google.ai.edge.gallery.data.Model),
             port = port,
         )
     }

@@ -129,14 +129,8 @@ fun SettingsDialog(
   val uiState by modelManagerViewModel.uiState.collectAsState()
   val selectedModel = uiState.selectedModel
 
-  LaunchedEffect(selectedModel) {
-    val model = selectedModel
-    val isInit = uiState.isModelInitialized(model)
-    apiServerViewModel.initialize(
-      modelHelper = if (isInit) model.runtimeHelper else null,
-      model = if (model != EMPTY_MODEL && isInit) model else null,
-      port = apiServerViewModel.port.value,
-    )
+  LaunchedEffect(selectedModel, uiState.modelInitializationStatus, uiState.tasks) {
+    apiServerViewModel.refreshFromModelManager(modelManagerViewModel)
   }
 
   Dialog(onDismissRequest = onDismissed) {
@@ -379,7 +373,7 @@ fun SettingsDialog(
               horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
               Button(
-                onClick = { apiServerViewModel.startServer(context) },
+                onClick = { apiServerViewModel.startServer(context, modelManagerViewModel) },
                 enabled = !apiServerRunning,
                 modifier = Modifier.weight(1f),
               ) {

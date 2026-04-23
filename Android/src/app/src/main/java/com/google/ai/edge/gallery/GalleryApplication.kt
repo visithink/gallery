@@ -40,6 +40,10 @@ class GalleryApplication : Application() {
   override fun onCreate() {
     super.onCreate()
 
+    // Disable Netty native transport for Android compatibility
+    System.setProperty("io.netty.transport.noNative", "true")
+    System.setProperty("io.netty.noUnsafe", "true")
+
     // Load saved theme.
     ThemeSettings.themeOverride.value = dataStoreRepository.readTheme()
 

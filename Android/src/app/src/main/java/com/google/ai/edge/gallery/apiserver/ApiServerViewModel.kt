@@ -22,17 +22,21 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.ai.edge.gallery.data.EMPTY_MODEL
 import com.google.ai.edge.gallery.data.Model
+import com.google.ai.edge.gallery.data.Task
 import com.google.ai.edge.gallery.runtime.LlmModelHelper
 import com.google.ai.edge.gallery.runtime.runtimeHelper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class ApiServerViewModel : ViewModel() {
     private var apiServer: ApiServer? = null
     private var modelHelper: LlmModelHelper? = null
     private var currentModel: Model? = null
+  private var availableModels: List<Model> = emptyList()
 
     private val _isRunning = MutableStateFlow(false)
     val isRunning: StateFlow<Boolean> = _isRunning.asStateFlow()
@@ -49,10 +53,12 @@ private val _statusMessage = MutableStateFlow("")
   fun initialize(
     modelHelper: LlmModelHelper?,
     model: Model?,
+    availableModels: List<Model> = listOfNotNull(model),
     port: Int = 8000,
   ) {
     this.modelHelper = modelHelper
     this.currentModel = model
+    this.availableModels = availableModels
     _port.value = port
   }
 
@@ -60,30 +66,108 @@ private val _statusMessage = MutableStateFlow("")
     val uiState = modelManagerViewModel.uiState.value
     val model = uiState.selectedModel
     val isInit = uiState.isModelInitialized(model)
+    val initializedModels = modelManagerViewModel.getAllModels().filter { candidate ->
+      uiState.isModelInitialized(candidate)
+    }
     if (model != EMPTY_MODEL && isInit) {
-      initialize(modelHelper = model.runtimeHelper, model = model, port = _port.value)
+      initialize(
+        modelHelper = model.runtimeHelper,
+        model = model,
+        availableModels = initializedModels,
+        port = _port.value,
+      )
       return
     }
-    val anyInitializedModel = uiState.modelInitializationStatus.entries
-      .filter { it.value.status == com.google.ai.edge.gallery.ui.modelmanager.ModelInitializationStatusType.INITIALIZED }
-      .keys
-      .firstOrNull()
-      ?.let { modelName -> uiState.modelDownloadStatus[modelName]?.model }
-    if (anyInitializedModel != null) {
-      initialize(modelHelper = anyInitializedModel.runtimeHelper, model = anyInitializedModel, port = _port.value)
+    val initializedModelName: String? = uiState.modelInitializationStatus.entries
+      .firstOrNull { it.value.status == com.google.ai.edge.gallery.ui.modelmanager.ModelInitializationStatusType.INITIALIZED }
+      ?.key
+    val initializedModel: Model? = initializedModelName?.let { name ->
+      modelManagerViewModel.getAllModels().find { it.name == name }
+    }
+    if (initializedModel != null) {
+      initialize(
+        modelHelper = initializedModel.runtimeHelper,
+        model = initializedModel,
+        availableModels = initializedModels,
+        port = _port.value,
+      )
+    } else {
+      initialize(modelHelper = null, model = null, availableModels = initializedModels, port = _port.value)
     }
   }
 
-  fun startServer(context: Context) {
+  private fun findTaskForModel(
+    modelManagerViewModel: com.google.ai.edge.gallery.ui.modelmanager.ModelManagerViewModel,
+    model: Model,
+  ): Task? {
+    return modelManagerViewModel.uiState.value.tasks.firstOrNull { task ->
+      task.models.any { candidate -> candidate.name == model.name }
+    }
+  }
+
+  private suspend fun ensureModelReady(
+    context: Context,
+    modelManagerViewModel: com.google.ai.edge.gallery.ui.modelmanager.ModelManagerViewModel,
+  ): Boolean {
+    refreshFromModelManager(modelManagerViewModel)
+    if (currentModel != null && modelHelper != null && availableModels.isNotEmpty()) {
+      return true
+    }
+
+    val selectedModel = modelManagerViewModel.uiState.value.selectedModel
+    val candidateModel = when {
+      selectedModel != EMPTY_MODEL -> selectedModel
+      else -> modelManagerViewModel.getAllDownloadedModels().firstOrNull()
+    }
+
+    if (candidateModel == null) {
+      _statusMessage.value = "No downloaded model available"
+      return false
+    }
+
+    val task = findTaskForModel(modelManagerViewModel, candidateModel)
+    if (task == null) {
+      _statusMessage.value = "Cannot resolve task for model ${candidateModel.name}"
+      return false
+    }
+
+    _statusMessage.value = "Preparing model ${candidateModel.name}..."
+    modelManagerViewModel.initializeModel(context = context, task = task, model = candidateModel)
+
+    val finalStatus = modelManagerViewModel.uiState
+      .map { uiState -> uiState.modelInitializationStatus[candidateModel.name]?.status }
+      .first { status ->
+        status == com.google.ai.edge.gallery.ui.modelmanager.ModelInitializationStatusType.INITIALIZED ||
+          status == com.google.ai.edge.gallery.ui.modelmanager.ModelInitializationStatusType.ERROR
+      }
+
+    if (finalStatus != com.google.ai.edge.gallery.ui.modelmanager.ModelInitializationStatusType.INITIALIZED) {
+      _statusMessage.value = "Failed to initialize model ${candidateModel.name}"
+      return false
+    }
+
+    refreshFromModelManager(modelManagerViewModel)
+    return currentModel != null && modelHelper != null && availableModels.isNotEmpty()
+  }
+
+  fun startServer(
+    context: Context,
+    modelManagerViewModel: com.google.ai.edge.gallery.ui.modelmanager.ModelManagerViewModel,
+  ) {
         if (_isRunning.value) return
 
         viewModelScope.launch {
             try {
+                if (!ensureModelReady(context = context, modelManagerViewModel = modelManagerViewModel)) {
+                    return@launch
+                }
+
                 if (apiServer == null) {
                     apiServer = ApiServer(
                         port = _port.value,
                         getModelHelper = { modelHelper },
                         getCurrentModel = { currentModel },
+                      getAvailableModels = { availableModels },
                     )
                 }
 
@@ -102,6 +186,41 @@ private val _statusMessage = MutableStateFlow("")
             }
         }
     }
+
+  fun startServer(context: Context) {
+    if (_isRunning.value) return
+
+    viewModelScope.launch {
+      try {
+        if (currentModel == null || modelHelper == null) {
+          _statusMessage.value = "No model loaded"
+          return@launch
+        }
+
+        if (apiServer == null) {
+          apiServer = ApiServer(
+            port = _port.value,
+            getModelHelper = { modelHelper },
+            getCurrentModel = { currentModel },
+            getAvailableModels = { availableModels },
+          )
+        }
+
+        val success = apiServer!!.start()
+        if (success) {
+          _isRunning.value = true
+          _statusMessage.value = "Server running"
+
+          val ipAddress = getLocalIpAddress(context)
+          _serverUrl.value = "http://$ipAddress:${_port.value}"
+        } else {
+          _statusMessage.value = "Failed to start server"
+        }
+      } catch (e: Exception) {
+        _statusMessage.value = "Error: ${e.message}"
+      }
+    }
+  }
 
     fun stopServer() {
         apiServer?.stop()

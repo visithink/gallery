@@ -28,6 +28,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.Data
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
+import com.google.ai.edge.gallery.common.resolveAppFilesDir
 import com.google.ai.edge.gallery.data.KEY_MODEL_COMMIT_HASH
 import com.google.ai.edge.gallery.data.KEY_MODEL_DOWNLOAD_ACCESS_TOKEN
 import com.google.ai.edge.gallery.data.KEY_MODEL_DOWNLOAD_ERROR_MESSAGE
@@ -66,7 +67,8 @@ private var channelCreated = false
 
 class DownloadWorker(context: Context, params: WorkerParameters) :
   CoroutineWorker(context, params) {
-  private val externalFilesDir = context.getExternalFilesDir(null)
+  private val externalFilesDir: File
+    get() = resolveAppFilesDir(applicationContext)
 
   private val notificationManager =
     context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -139,7 +141,7 @@ class DownloadWorker(context: Context, params: WorkerParameters) :
             // Prepare output file's dir.
             val outputDir =
               File(
-                applicationContext.getExternalFilesDir(null),
+                externalFilesDir,
                 listOf(modelDir, version).joinToString(separator = File.separator),
               )
             if (!outputDir.exists()) {
@@ -149,7 +151,7 @@ class DownloadWorker(context: Context, params: WorkerParameters) :
             // Read the tmp file and see if it is partially downloaded.
             val outputTmpFile =
               File(
-                applicationContext.getExternalFilesDir(null),
+                externalFilesDir,
                 listOf(modelDir, version, "${file.fileName}.$TMP_FILE_EXT")
                   .joinToString(separator = File.separator),
               )
