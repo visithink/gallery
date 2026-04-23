@@ -466,4 +466,12 @@
   <string name="tokens_per_second">tokens/秒</string>
   <string name="seconds_abbrev">秒</string>
   <string name="milliseconds_abbrev">毫秒</string>
+  <string name="app_error_title">应用错误</string>
+  <string name="app_error_message">推理引擎发生错误。
+
+错误：%s
+
+请重启应用。</string>
+  <string name="restart">重启</string>
+  <string name="app_error_unknown">未知错误</string>
 </resources>

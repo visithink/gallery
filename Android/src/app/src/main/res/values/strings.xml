@@ -516,4 +516,12 @@ Your use of each model is subject to the applicable model license terms.</string
   <string name="tokens_per_second">tokens/sec</string>
   <string name="seconds_abbrev">sec</string>
   <string name="milliseconds_abbrev">ms</string>
+  <string name="app_error_title">Application Error</string>
+  <string name="app_error_message">An error occurred in the inference engine.
+
+Error: %s
+
+Please restart the application.</string>
+  <string name="restart">Restart</string>
+  <string name="app_error_unknown">Unknown error</string>
 </resources>
