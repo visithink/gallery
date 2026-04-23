@@ -122,7 +122,21 @@ class ApiServer(
                     return@post
                 }
 
-                val request = call.receive<ChatCompletionRequest>()
+                val request =
+                    try {
+                        call.receive<ChatCompletionRequest>()
+                    } catch (e: Exception) {
+                        call.respond(
+                            HttpStatusCode.BadRequest,
+                            ErrorResponse(
+                                ErrorDetail(
+                                    message =
+                                        "Invalid chat completion request: ${e.message ?: "malformed JSON"}"
+                                )
+                            )
+                        )
+                        return@post
+                    }
                 val requestId = "chatcmpl-${System.currentTimeMillis()}"
 
                 if (request.stream) {
@@ -160,10 +174,10 @@ class ApiServer(
         modelHelper: LlmModelHelper,
         model: Model,
     ) {
-        val lastUserMessage = request.messages.lastOrNull { it.role == "user" }?.content ?: ""
+        val prompt = buildChatPrompt(request)
 
         val result = withContext(Dispatchers.IO) {
-            runInference(modelHelper, model, lastUserMessage)
+            runInference(modelHelper, model, prompt)
         }
 
         call.respond(
@@ -174,7 +188,7 @@ class ApiServer(
                 model = modelName,
                 choices = listOf(
                     ChatCompletionChoice(
-                        message = ChatMessage(role = "assistant", content = result)
+                        message = ChatMessage(role = "assistant", content = Json.encodeToJsonElement(result))
                     )
                 )
             )
@@ -189,12 +203,12 @@ class ApiServer(
         modelHelper: LlmModelHelper,
         model: Model,
     ) {
-        val lastUserMessage = request.messages.lastOrNull { it.role == "user" }?.content ?: ""
+        val prompt = buildChatPrompt(request)
 
         call.respondText(
             contentType = ContentType.Text.EventStream,
         ) {
-            val flow = streamInference(modelHelper, model, lastUserMessage)
+            val flow = streamInference(modelHelper, model, prompt)
             val sb = StringBuilder()
 
             flow.collect { chunk ->
@@ -304,6 +318,26 @@ class ApiServer(
                 close()
             }
         )
+    }
+
+    private fun buildChatPrompt(request: ChatCompletionRequest): String {
+        val prompt =
+            request.messages
+                .mapNotNull { message ->
+                    val text = message.extractTextContent().trim()
+                    when {
+                        text.isNotEmpty() -> "${message.role}: $text"
+                        message.role == "assistant" && message.toolCalls != null ->
+                            "assistant: [tool call requested]"
+                        else -> null
+                    }
+                }.joinToString(separator = "\n\n")
+
+        if (prompt.isNotBlank()) {
+            return prompt
+        }
+
+        return request.messages.lastOrNull { it.role == "user" }?.extractTextContent().orEmpty()
     }
 
     companion object {

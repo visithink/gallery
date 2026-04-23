@@ -43,7 +43,6 @@ import com.google.ai.edge.gallery.data.DataStoreRepository
 import com.google.ai.edge.gallery.data.SkillAllowlist
 import com.google.ai.edge.gallery.proto.Skill
 import com.google.ai.edge.litertlm.Contents
-import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.io.InputStreamReader
@@ -128,7 +127,6 @@ data class SkillManagerUiState(
   val skillAllowlistError: String? = null,
 )
 
-@HiltViewModel
 class SkillManagerViewModel
 @Inject
 constructor(

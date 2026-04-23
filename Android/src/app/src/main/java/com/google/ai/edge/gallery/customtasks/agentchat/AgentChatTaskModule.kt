@@ -32,11 +32,13 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.IntoSet
-import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 
-class AgentChatTask @Inject constructor() : CustomTask {
-  private val agentTools = AgentTools()
+class AgentChatTask(
+  private val skillManagerViewModel: SkillManagerViewModel
+) : CustomTask {
+  private val agentTools =
+    AgentTools().apply { this.skillManagerViewModel = this@AgentChatTask.skillManagerViewModel }
 
   override val task: Task =
     Task(
@@ -77,7 +79,23 @@ class AgentChatTask @Inject constructor() : CustomTask {
     model: Model,
     onDone: (String) -> Unit,
   ) {
-    agentTools.skillManagerViewModel.loadSkills {
+    agentTools.context = context
+    val skillManagerViewModel = agentTools.skillManagerViewModel
+    if (skillManagerViewModel == null) {
+      LlmChatModelHelper.initialize(
+        context = context,
+        model = model,
+        supportImage = true,
+        supportAudio = true,
+        onDone = onDone,
+        systemInstruction = null,
+        tools = emptyList(),
+        enableConversationConstrainedDecoding = false,
+      )
+      return
+    }
+
+    skillManagerViewModel.loadSkills {
       LlmChatModelHelper.initialize(
         context = context,
         model = model,
@@ -85,10 +103,10 @@ class AgentChatTask @Inject constructor() : CustomTask {
         supportAudio = true,
         onDone = onDone,
         systemInstruction =
-          if (agentTools.skillManagerViewModel.getSelectedSkills().isEmpty()) {
+          if (skillManagerViewModel.getSelectedSkills().isEmpty()) {
             null
           } else {
-            agentTools.skillManagerViewModel.getSystemPrompt(task.defaultSystemPrompt)
+            skillManagerViewModel.getSystemPrompt(task.defaultSystemPrompt)
           },
         tools = listOf(tool(agentTools)),
         enableConversationConstrainedDecoding = true,
@@ -122,7 +140,7 @@ class AgentChatTask @Inject constructor() : CustomTask {
 internal object AgentChatTaskModule {
   @Provides
   @IntoSet
-  fun provideTask(): CustomTask {
-    return AgentChatTask()
+  fun provideTask(skillManagerViewModel: SkillManagerViewModel): CustomTask {
+    return AgentChatTask(skillManagerViewModel)
   }
 }

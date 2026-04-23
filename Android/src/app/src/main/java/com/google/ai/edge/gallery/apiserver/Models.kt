@@ -18,11 +18,20 @@ package com.google.ai.edge.gallery.apiserver
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 
 @Serializable
 data class ChatMessage(
     val role: String,
-    val content: String,
+    val content: JsonElement? = null,
+    val name: String? = null,
+    @SerialName("tool_call_id") val toolCallId: String? = null,
+    @SerialName("tool_calls") val toolCalls: JsonElement? = null,
 )
 
 @Serializable
@@ -34,6 +43,10 @@ data class ChatCompletionRequest(
     @SerialName("top_k") val topK: Int = 40,
     @SerialName("max_tokens") val maxTokens: Int = 1024,
     val stream: Boolean = false,
+    val tools: JsonElement? = null,
+    @SerialName("tool_choice") val toolChoice: JsonElement? = null,
+    @SerialName("parallel_tool_calls") val parallelToolCalls: Boolean? = null,
+    @SerialName("response_format") val responseFormat: JsonElement? = null,
 )
 
 @Serializable
@@ -135,3 +148,36 @@ data class ErrorDetail(
     val type: String = "invalid_request_error",
     val code: String? = null,
 )
+
+fun ChatMessage.extractTextContent(): String =
+    when (val value = content) {
+        null,
+        JsonNull -> ""
+        is JsonPrimitive -> value.contentOrNull ?: value.toString()
+        is JsonObject -> value["text"].asTextContent()
+        is JsonArray ->
+            value.joinToString(separator = "") { item ->
+                when (item) {
+                    is JsonPrimitive -> item.contentOrNull ?: ""
+                    is JsonObject -> {
+                        val type = (item["type"] as? JsonPrimitive)?.contentOrNull
+                        when (type) {
+                            "text",
+                            "input_text" -> item["text"].asTextContent()
+                            else -> ""
+                        }
+                    }
+                    else -> ""
+                }
+            }
+        else -> value.toString()
+    }
+
+private fun JsonElement?.asTextContent(): String =
+    when (this) {
+        null,
+        JsonNull -> ""
+        is JsonPrimitive -> contentOrNull ?: toString()
+        is JsonObject -> (this["value"] as? JsonPrimitive)?.contentOrNull ?: ""
+        else -> toString()
+    }

@@ -39,7 +39,14 @@ private const val TAG = "AGAgentTools"
 
 class AgentTools() : ToolSet {
   lateinit var context: Context
-  lateinit var skillManagerViewModel: SkillManagerViewModel
+  var skillManagerViewModel: SkillManagerViewModel? = null
+
+  private fun requireSkillManagerViewModel(): SkillManagerViewModel? {
+    if (skillManagerViewModel == null) {
+      Log.w(TAG, "SkillManagerViewModel is not available")
+    }
+    return skillManagerViewModel
+  }
 
   private val _actionChannel = Channel<AgentAction>(Channel.UNLIMITED)
   val actionChannel: ReceiveChannel<AgentAction> = _actionChannel
@@ -52,6 +59,11 @@ class AgentTools() : ToolSet {
     @ToolParam(description = "The name of the skill to load.") skillName: String
   ): Map<String, String> {
     return runBlocking(Dispatchers.Default) {
+      val skillManagerViewModel = requireSkillManagerViewModel()
+        ?: return@runBlocking mapOf(
+          "skill_name" to skillName,
+          "skill_instructions" to "Skill manager not available",
+        )
       val skills = skillManagerViewModel.getSelectedSkills()
       val skill = skills.find { it.name == skillName.trim() }
       val skillContent =
@@ -96,11 +108,17 @@ class AgentTools() : ToolSet {
     data: String,
   ): Map<String, Any> {
     return runBlocking(Dispatchers.Default) {
+      val skillManagerViewModel = requireSkillManagerViewModel()
+        ?: return@runBlocking mapOf(
+          "error" to "Skill manager not available",
+          "status" to "failed",
+        )
       Log.d(
         TAG,
         "runJS tool called with:" +
           "\n- skillName: ${skillName}\n- scriptName: ${scriptName}\n- data: ${data}\n",
       )
+
 
       val skills = skillManagerViewModel.getSelectedSkills()
       val skill = skills.find { it.name == skillName.trim() }

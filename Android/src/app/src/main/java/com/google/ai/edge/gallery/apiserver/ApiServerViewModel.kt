@@ -20,6 +20,7 @@ import android.content.Context
 import android.net.wifi.WifiManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.ai.edge.gallery.data.BuiltInTaskId
 import com.google.ai.edge.gallery.data.EMPTY_MODEL
 import com.google.ai.edge.gallery.data.Model
 import com.google.ai.edge.gallery.data.Task
@@ -49,6 +50,16 @@ class ApiServerViewModel : ViewModel() {
 
 private val _statusMessage = MutableStateFlow("")
   val statusMessage: StateFlow<String> = _statusMessage.asStateFlow()
+
+  private val apiServerTaskPriority =
+    listOf(
+      BuiltInTaskId.LLM_CHAT,
+      BuiltInTaskId.LLM_PROMPT_LAB,
+      BuiltInTaskId.LLM_ASK_IMAGE,
+      BuiltInTaskId.LLM_ASK_AUDIO,
+      BuiltInTaskId.LLM_MOBILE_ACTIONS,
+      BuiltInTaskId.LLM_TINY_GARDEN,
+    )
 
   fun initialize(
     modelHelper: LlmModelHelper?,
@@ -100,9 +111,16 @@ private val _statusMessage = MutableStateFlow("")
     modelManagerViewModel: com.google.ai.edge.gallery.ui.modelmanager.ModelManagerViewModel,
     model: Model,
   ): Task? {
-    return modelManagerViewModel.uiState.value.tasks.firstOrNull { task ->
-      task.models.any { candidate -> candidate.name == model.name }
+    val matchingTasks =
+      modelManagerViewModel.uiState.value.tasks.filter { task ->
+        task.models.any { candidate -> candidate.name == model.name }
+      }
+
+    apiServerTaskPriority.forEach { taskId ->
+      matchingTasks.firstOrNull { it.id == taskId }?.let { return it }
     }
+
+    return matchingTasks.firstOrNull { it.id != BuiltInTaskId.LLM_AGENT_CHAT }
   }
 
   private suspend fun ensureModelReady(
@@ -115,10 +133,10 @@ private val _statusMessage = MutableStateFlow("")
     }
 
     val selectedModel = modelManagerViewModel.uiState.value.selectedModel
-    val candidateModel = when {
-      selectedModel != EMPTY_MODEL -> selectedModel
-      else -> modelManagerViewModel.getAllDownloadedModels().firstOrNull()
-    }
+    val candidateModel =
+      listOfNotNull(selectedModel.takeIf { it != EMPTY_MODEL })
+        .plus(modelManagerViewModel.getAllDownloadedModels())
+        .firstOrNull { model -> findTaskForModel(modelManagerViewModel, model) != null }
 
     if (candidateModel == null) {
       _statusMessage.value = "No downloaded model available"
@@ -127,7 +145,7 @@ private val _statusMessage = MutableStateFlow("")
 
     val task = findTaskForModel(modelManagerViewModel, candidateModel)
     if (task == null) {
-      _statusMessage.value = "Cannot resolve task for model ${candidateModel.name}"
+      _statusMessage.value = "No API-server-compatible task for model ${candidateModel.name}"
       return false
     }
 

@@ -155,10 +155,10 @@ fun SkillTesterBottomSheet(agentTools: AgentTools, skill: Skill, onDismiss: () -
                 val url = webview.url
                 if (url != null) {
                   val finalUrl =
-                    agentTools.skillManagerViewModel.getJsSkillWebviewUrl(
+                    agentTools.skillManagerViewModel?.getJsSkillWebviewUrl(
                       skillName = skill.name,
                       url = url,
-                    )
+                    ) ?: url
                   MessageBodyWebview(
                     message =
                       ChatMessageWebView(
@@ -188,7 +188,7 @@ fun SkillTesterBottomSheet(agentTools: AgentTools, skill: Skill, onDismiss: () -
               resultWebview = null
               // TODO(before launch)
               val url =
-                agentTools.skillManagerViewModel.getJsSkillUrl(
+                agentTools.skillManagerViewModel?.getJsSkillUrl(
                   skillName = skill.name,
                   scriptName = "",
                 )
