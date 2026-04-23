@@ -172,13 +172,13 @@ fun AddSkillFromUrlDialog(
         else {
           Row(
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            horizontalArrangement = Arrangement.End,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
           ) {
-            OutlinedButton(onClick = { onDismissRequest() }) {
+            OutlinedButton(modifier = Modifier.weight(1f), onClick = { onDismissRequest() }) {
               Text(stringResource(R.string.cancel))
             }
-            Spacer(modifier = Modifier.width(4.dp))
             Button(
+              modifier = Modifier.weight(1f),
               onClick = {
                 val url = textFieldValue.text
                 if (isHostApproved(url)) {

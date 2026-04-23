@@ -125,7 +125,7 @@ fun ConfigDialog(
   initialValues: Map<String, Any>,
   onDismissed: () -> Unit,
   onOk: (values: Map<String, Any>, oldSystemPrompt: String, newSystemPrompt: String) -> Unit,
-  okBtnLabel: String = "OK",
+  okBtnLabel: String = stringResource(R.string.ok),
   subtitle: String = "",
   showCancel: Boolean = true,
   showSystemPromptEditorTab: Boolean = false,
@@ -244,7 +244,7 @@ fun ConfigDialog(
           ) {
             // Cancel button.
             if (showCancel) {
-              TextButton(onClick = { onDismissed() }) { Text("Cancel") }
+              TextButton(onClick = { onDismissed() }) { Text(stringResource(R.string.cancel)) }
             }
 
             // Ok button

@@ -291,15 +291,15 @@ fun MainUi(
           else -> 2
         }
       val functionNameLabel = resources.getString(R.string.function_name)
-      val parametersLabel = resources.getQuantityString(R.plurals.parameter, numParameters)
-      viewModel.addMessage(
-        message =
-          ChatMessageText(
-            content =
-              "**$functionNameLabel**:\n- $functionName\n\n**$parametersLabel**:\n$functionParameter",
-            side = ChatSide.AGENT,
-          )
-      )
+            val parametersLabel = resources.getString(R.string.parameters)
+            viewModel.addMessage(
+              message =
+                ChatMessageText(
+                  content =
+                    "**$functionNameLabel**:\n- $functionName\n\n**$parametersLabel**:\n$functionParameter",
+                  side = ChatSide.AGENT,
+                )
+            )
 
       // Convert command into json that can be consumed by the game.
       val commandJson =

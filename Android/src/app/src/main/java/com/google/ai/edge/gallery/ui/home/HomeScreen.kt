@@ -528,14 +528,14 @@ fun HomeScreen(
         )
       },
       title = { Text(uiState.loadingModelAllowlistError) },
-      text = { Text("Please check your internet connection and try again later.") },
+      text = { Text(stringResource(R.string.check_internet_connection_retry)) },
       onDismissRequest = { modelManagerViewModel.loadModelAllowlist() },
       confirmButton = {
-        TextButton(onClick = { modelManagerViewModel.loadModelAllowlist() }) { Text("Retry") }
+        TextButton(onClick = { modelManagerViewModel.loadModelAllowlist() }) { Text(stringResource(R.string.retry)) }
       },
       dismissButton = {
         TextButton(onClick = { modelManagerViewModel.clearLoadModelAllowlistError() }) {
-          Text("Cancel")
+          Text(stringResource(R.string.cancel))
         }
       },
     )
@@ -719,7 +719,7 @@ private fun TryGm4IntroText(enableAnimation: Boolean) {
       tint = MaterialTheme.colorScheme.primary,
     )
     Text(
-      text = "Try Gemma 4 today",
+      text = stringResource(R.string.try_gemma_4_today),
       style =
         MaterialTheme.typography.headlineSmall.copy(
           fontWeight = FontWeight.Medium,
@@ -731,7 +731,7 @@ private fun TryGm4IntroText(enableAnimation: Boolean) {
   }
 
   Text(
-    "Gemma 4 E2B & E4B are here! Try them in AI Chat, Agent Skills, or the use cases below.",
+    stringResource(R.string.gemma_4_e2b_e4b_description),
     style = MaterialTheme.typography.bodyMedium,
     modifier =
       Modifier.graphicsLayer {
@@ -861,10 +861,8 @@ private fun TaskList(
     ) {
       val chatToDescription =
         mapOf(
-          BuiltInTaskId.LLM_CHAT to "Chat with the latest Gemma 4 model today",
-          // use "\u00a0" to make sure the word before and after it should always be together when
-          // wrapping lines.
-          BuiltInTaskId.LLM_AGENT_CHAT to "Have Gemma 4 complete agentic tasks for\u00A0you",
+          BuiltInTaskId.LLM_CHAT to stringResource(R.string.chat_with_gemma_4),
+          BuiltInTaskId.LLM_AGENT_CHAT to stringResource(R.string.gemma_4_agentic_tasks),
         )
       for (task in
         listOf(
@@ -882,7 +880,7 @@ private fun TaskList(
       }
 
       Text(
-        text = "Explore other use cases",
+        text = stringResource(R.string.explore_other_use_cases),
         style =
           MaterialTheme.typography.headlineSmall.copy(
             fontWeight = FontWeight.Medium,
@@ -1107,7 +1105,7 @@ private fun TaskCard(
                   contentAlignment = Alignment.Center,
                 ) {
                   Text(
-                    "New",
+                    stringResource(R.string.new_feature),
                     color = MaterialTheme.customColors.newFeatureTextColor,
                     style = MaterialTheme.typography.labelLarge,
                   )
@@ -1134,7 +1132,7 @@ private fun TaskCard(
               if (task.experimental) {
                 Icon(
                   painter = painterResource(R.drawable.ic_experiment),
-                  contentDescription = "Experimental",
+                  contentDescription = stringResource(R.string.experimental),
                   modifier = Modifier.size(20.dp).padding(start = 4.dp),
                   tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

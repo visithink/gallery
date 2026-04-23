@@ -79,17 +79,15 @@ fun MobileActionsChallengeDialog(
         fontWeight = FontWeight.Bold,
       )
       val instructions = buildAnnotatedString {
-        append("1. ")
-        withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append("On your computer") }
-        append(", open ")
-        append(buildTrackableUrlAnnotatedString(url = guideUrl, linkText = "this guide"))
-        append(
-          "\n2. Follow the instructions to fine tune the model and convert it to .litertlm format."
-        )
-        append("\n3. Transfer the file to this phone.")
-        append("\n4. Tap ")
-        withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append("Load Model") }
-        append(" below to unlock the demo.")
+        append(stringResource(R.string.mobile_actions_challenge_instruction_1))
+        withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append(stringResource(R.string.mobile_actions_challenge_on_your_computer)) }
+        append(stringResource(R.string.mobile_actions_challenge_open))
+        append(buildTrackableUrlAnnotatedString(url = guideUrl, linkText = stringResource(R.string.mobile_actions_challenge_this_guide)))
+        append(stringResource(R.string.mobile_actions_challenge_instruction_2))
+        append(stringResource(R.string.mobile_actions_challenge_instruction_3))
+        append(stringResource(R.string.mobile_actions_challenge_instruction_4))
+        withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append(stringResource(R.string.mobile_actions_challenge_load_model)) }
+        append(stringResource(R.string.mobile_actions_challenge_instruction_5))
       }
       Text(
         text = instructions,

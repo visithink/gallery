@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.ai.edge.gallery.data.AppBarAction
 import com.google.ai.edge.gallery.data.AppBarActionType
+import com.google.ai.edge.gallery.R
 
 /** The top app bar. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -133,7 +134,7 @@ fun GalleryTopAppBar(
 
         // Click a button to navigate up.
         AppBarActionType.NAVIGATE_UP -> {
-          TextButton(onClick = rightAction.actionFn) { Text("Done") }
+          TextButton(onClick = rightAction.actionFn) { Text(stringResource(R.string.done)) }
         }
 
         else -> {}

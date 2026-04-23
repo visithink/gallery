@@ -82,6 +82,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
@@ -247,7 +248,7 @@ fun PromptTemplatesPanel(
                   disabledContainerColor = Color.Transparent,
                 ),
               textStyle = bodyLargeNarrow,
-              placeholder = { Text("Enter content") },
+              placeholder = { Text(stringResource(R.string.enter_content)) },
               modifier =
                 Modifier.padding(bottom = 40.dp).focusRequester(focusRequester).semantics {
                   contentDescription = cdContentInput
@@ -302,7 +303,7 @@ fun PromptTemplatesPanel(
                   modifier = Modifier.size(FilterChipDefaults.IconSize).alpha(0.3f),
                 )
               }
-              Text("Preview prompt", style = MaterialTheme.typography.labelMedium)
+              Text(stringResource(R.string.preview_prompt), style = MaterialTheme.typography.labelMedium)
             }
           }
 
@@ -310,10 +311,11 @@ fun PromptTemplatesPanel(
 
           // Button to copy full prompt.
           if (curTextInputContent.isNotEmpty()) {
+            val context = LocalContext.current
             OutlinedIconButton(
               onClick = {
                 scope.launch {
-                  val clipData = ClipData.newPlainText("prompt", fullPrompt)
+                  val clipData = ClipData.newPlainText(context.getString(R.string.prompt), fullPrompt)
                   val clipEntry = ClipEntry(clipData = clipData)
                   clipboard.setClipEntry(clipEntry = clipEntry)
                 }
@@ -416,7 +418,7 @@ fun PromptTemplatesPanel(
       Column(modifier = Modifier.padding(bottom = 16.dp)) {
         // Title
         Text(
-          "Select an example",
+          stringResource(R.string.select_an_example),
           modifier = Modifier.fillMaxWidth().padding(16.dp),
           style = MaterialTheme.typography.titleLarge,
         )

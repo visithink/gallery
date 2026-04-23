@@ -34,15 +34,24 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
+import io.ktor.server.response.respondBytesWriter
+import io.ktor.utils.io.writeFully
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.concurrent.thread
 
@@ -110,6 +119,65 @@ class ApiServer(
                 )
             }
 
+            get("/v1/compression/config") {
+                call.respond(
+                    mapOf(
+                        "environment" to CompressionConfig.currentEnvironment.name,
+                        "isCompressionEnabled" to CompressionConfig.isCompressionEnabled,
+                        "maxTokenLimit" to CompressionConfig.maxTokenLimit,
+                        "preserveRecentTurns" to CompressionConfig.preserveRecentTurns,
+                        "summaryMaxTokens" to CompressionConfig.summaryMaxTokens,
+                        "enableDetailedLogging" to CompressionConfig.enableDetailedLogging
+                    )
+                )
+            }
+
+            post("/v1/compression/config") {
+                val newEnv = call.receive< Map<String, String>>()
+                newEnv["environment"]?.let { env ->
+                    val environment = try {
+                        CompressionConfig.Environment.valueOf(env)
+                    } catch (e: Exception) {
+                        call.respond(HttpStatusCode.BadRequest, ErrorResponse(ErrorDetail("Invalid environment: $env")))
+                        return@post
+                    }
+                    CompressionConfig.setEnvironment(environment)
+                }
+                newEnv["maxTokens"]?.toIntOrNull()?.let { tokens ->
+                    CompressionConfig.updateConfig(maxTokens = tokens)
+                }
+                newEnv["recentTurns"]?.toIntOrNull()?.let { turns ->
+                    CompressionConfig.updateConfig(recentTurns = turns)
+                }
+                newEnv["summaryTokens"]?.toIntOrNull()?.let { tokens ->
+                    CompressionConfig.updateConfig(summaryTokens = tokens)
+                }
+                call.respond(mapOf("status" to "Configuration updated"))
+            }
+
+            get("/v1/compression/logs") {
+                val count = call.request.queryParameters["count"]?.toIntOrNull() ?: 10
+                val logs = CompressionLogger.getRecentLogs(count)
+                call.respond(mapOf("logs" to logs))
+            }
+
+            get("/v1/compression/statistics") {
+                val stats = CompressionLogger.getStatistics()
+                call.respond(stats)
+            }
+
+            post("/v1/compression/validate") {
+                val testData = call.receive<ValidationInput>()
+                val result = CompressionValidator.runValidation(
+                    originalContent = testData.originalContent,
+                    compressedContent = testData.compressedContent,
+                    summaryText = testData.summaryText,
+                    originalTaskScore = testData.originalTaskScore,
+                    compressedTaskScore = testData.compressedTaskScore
+                )
+                call.respond(result)
+            }
+
             post("/v1/chat/completions") {
                 val model = getCurrentModel()
                 val modelHelper = getModelHelper()
@@ -174,7 +242,25 @@ class ApiServer(
         modelHelper: LlmModelHelper,
         model: Model,
     ) {
-        val prompt = buildChatPrompt(request)
+        val compressionResult = if (CompressionConfig.isCompressionEnabled) {
+            ContextCompressor.compress(modelHelper, model, request.messages)
+        } else {
+            val allContent = request.messages.joinToString("\n") { it.extractTextContent() }
+            val originalLength = SemanticSummarizer.estimateTokenCount(allContent)
+            ContextCompressor.CompressionResult(
+                originalLength = originalLength,
+                compressedLength = originalLength,
+                compressedContent = allContent,
+                summaryText = null,
+                droppedRatio = 0f
+            )
+        }
+
+        val prompt = compressionResult.compressedContent
+
+        if (compressionResult.droppedRatio > 0.1f) {
+            Log.d(TAG, "Context compressed: ${compressionResult.originalLength} → ${compressionResult.compressedLength} tokens (${"%.1f".format(compressionResult.droppedRatio * 100)}% dropped)")
+        }
 
         val result = withContext(Dispatchers.IO) {
             runInference(modelHelper, model, prompt)
@@ -188,7 +274,7 @@ class ApiServer(
                 model = modelName,
                 choices = listOf(
                     ChatCompletionChoice(
-                        message = ChatMessage(role = "assistant", content = Json.encodeToJsonElement(result))
+                        message = ChatMessage(role = "assistant", content = JsonPrimitive(result))
                     )
                 )
             )
@@ -203,14 +289,28 @@ class ApiServer(
         modelHelper: LlmModelHelper,
         model: Model,
     ) {
-        val prompt = buildChatPrompt(request)
+        val compressionResult = if (CompressionConfig.isCompressionEnabled) {
+            ContextCompressor.compress(modelHelper, model, request.messages)
+        } else {
+            val allContent = request.messages.joinToString("\n") { it.extractTextContent() }
+            val originalLength = SemanticSummarizer.estimateTokenCount(allContent)
+            ContextCompressor.CompressionResult(
+                originalLength = originalLength,
+                compressedLength = originalLength,
+                compressedContent = allContent,
+                summaryText = null,
+                droppedRatio = 0f
+            )
+        }
 
-        call.respondText(
-            contentType = ContentType.Text.EventStream,
-        ) {
+        val prompt = compressionResult.compressedContent
+
+        if (compressionResult.droppedRatio > 0.1f) {
+            Log.d(TAG, "Streaming: Context compressed: ${compressionResult.originalLength} → ${compressionResult.compressedLength} tokens")
+        }
+
+        call.respondBytesWriter(contentType = ContentType.Text.EventStream) {
             val flow = streamInference(modelHelper, model, prompt)
-            val sb = StringBuilder()
-
             flow.collect { chunk ->
                 val event = ChatCompletionChunk(
                     id = requestId,
@@ -223,11 +323,12 @@ class ApiServer(
                         )
                     )
                 )
-                sb.append("data: ${Json.encodeToString(event)}\n\n")
+                val data = "data: ${Json.encodeToString(event)}\n\n"
+                writeFully(data.toByteArray())
+                flush()
             }
-
-            sb.append("data: [DONE]\n\n")
-            sb.toString()
+            writeFully("data: [DONE]\n\n".toByteArray())
+            flush()
         }
     }
 
@@ -256,44 +357,32 @@ class ApiServer(
         )
     }
 
-    private fun runInference(
+    private suspend fun runInference(
         modelHelper: LlmModelHelper,
         model: Model,
         input: String,
-    ): String {
-        var result = ""
-        var completed = false
-        val lock = Object()
-
+    ): String = kotlinx.coroutines.suspendCancellableCoroutine { continuation ->
+        val fullResult = StringBuilder()
         modelHelper.runInference(
             model = model,
             input = input,
             resultListener = { partialResult, done, _ ->
-                result = partialResult
-                if (done) {
-                    synchronized(lock) {
-                        completed = true
-                        lock.notifyAll()
-                    }
+                fullResult.append(partialResult)
+                if (done && !continuation.isCompleted) {
+                    continuation.resumeWith(Result.success(fullResult.toString()))
                 }
             },
             cleanUpListener = {},
             onError = { error ->
-                result = "Error: $error"
-                synchronized(lock) {
-                    completed = true
-                    lock.notifyAll()
+                if (!continuation.isCompleted) {
+                    continuation.resumeWith(Result.failure(Exception(error)))
                 }
             }
         )
 
-        synchronized(lock) {
-            while (!completed) {
-                lock.wait()
-            }
+        continuation.invokeOnCancellation {
+            modelHelper.stopResponse(model)
         }
-
-        return result
     }
 
     private fun streamInference(
@@ -315,32 +404,90 @@ class ApiServer(
             cleanUpListener = {},
             onError = { error ->
                 trySend("Error: $error")
-                close()
+                close(Exception(error))
             }
         )
+        awaitClose {
+            modelHelper.stopResponse(model)
+        }
     }
 
     private fun buildChatPrompt(request: ChatCompletionRequest): String {
-        val prompt =
-            request.messages
-                .mapNotNull { message ->
-                    val text = message.extractTextContent().trim()
-                    when {
-                        text.isNotEmpty() -> "${message.role}: $text"
-                        message.role == "assistant" && message.toolCalls != null ->
-                            "assistant: [tool call requested]"
-                        else -> null
-                    }
-                }.joinToString(separator = "\n\n")
-
-        if (prompt.isNotBlank()) {
-            return prompt
+        val lastUserMessage = request.messages.lastOrNull { it.role == "user" }?.extractTextContent()?.trim()
+        if (lastUserMessage.isNullOrEmpty()) {
+            Log.w(TAG, "No user message found in request")
+            return ""
         }
 
-        return request.messages.lastOrNull { it.role == "user" }?.extractTextContent().orEmpty()
+        val toolContext = buildToolContext(request.messages)
+        val prompt = if (toolContext.isNotEmpty()) {
+            "$lastUserMessage\n\n[Tool context: $toolContext]"
+        } else {
+            lastUserMessage
+        }
+
+        Log.d(TAG, "Built prompt (${prompt.length} chars):\n$prompt")
+        return prompt
+    }
+
+    private fun buildToolContext(messages: List<ChatMessage>): String {
+        val toolMessages = messages.filter { it.role == "tool" }
+        if (toolMessages.isEmpty()) return ""
+
+        return toolMessages.mapNotNull { msg ->
+            val content = msg.extractTextContent().trim()
+            if (content.isNotEmpty()) {
+                val toolId = msg.toolCallId ?: "unknown"
+                "$toolId: $content"
+            } else null
+        }.joinToString("; ")
+    }
+
+    private fun extractToolCallsString(toolCalls: JsonElement?): String {
+        if (toolCalls == null) return ""
+        return try {
+            when (toolCalls) {
+                is JsonArray -> {
+                    toolCalls.mapNotNull { item ->
+                        val obj = item as? JsonObject
+                        val function = obj?.get("function") as? JsonObject
+                        val name = function?.get("name")?.let {
+                            if (it is JsonPrimitive) it.contentOrNull else null
+                        } ?: return@mapNotNull null
+                        val args = function?.get("arguments")?.let {
+                            if (it is JsonPrimitive) it.contentOrNull else it?.toString()
+                        } ?: ""
+                        "$name($args)"
+                    }.joinToString("; ")
+                }
+                is JsonObject -> {
+                    val function = toolCalls.get("function") as? JsonObject
+                    val name = function?.get("name")?.let {
+                        if (it is JsonPrimitive) it.contentOrNull else null
+                    } ?: return ""
+                    val args = function?.get("arguments")?.let {
+                        if (it is JsonPrimitive) it.contentOrNull else it?.toString()
+                    } ?: ""
+                    "$name($args)"
+                }
+                else -> toolCalls.toString()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to parse tool calls: ${e.message}")
+            toolCalls.toString()
+        }
     }
 
     companion object {
         private const val TAG = "ApiServer"
     }
 }
+
+@kotlinx.serialization.Serializable
+data class ValidationInput(
+    val originalContent: String,
+    val compressedContent: String,
+    val summaryText: String? = null,
+    val originalTaskScore: Float? = null,
+    val compressedTaskScore: Float? = null
+)

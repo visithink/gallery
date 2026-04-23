@@ -378,9 +378,10 @@ fun MainUi(
               }
             }
             if (errors.isNotEmpty()) {
+              val separator = resources.getString(R.string.semicolon_separator)
               scope.launch {
                 snackbarHostState.showSnackbar(
-                  errors.joinToString(separator = "; "),
+                  errors.joinToString(separator = separator),
                   withDismissAction = true,
                   duration = SnackbarDuration.Long,
                 )

@@ -33,6 +33,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.res.stringResource
+import com.google.ai.edge.gallery.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,7 +63,7 @@ fun ApiServerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("API Server") },
+                title = { Text(stringResource(R.string.api_server)) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 ),
@@ -141,7 +143,7 @@ fun ApiServerScreen(
                             }
                             IconButton(
                                 onClick = {
-                                    val clip = ClipData.newPlainText("API URL", serverUrl)
+                                    val clip = ClipData.newPlainText(context.getString(R.string.api_url), serverUrl)
                                     clipboardManager.setPrimaryClip(clip)
                                 }
                             ) {
@@ -169,7 +171,7 @@ fun ApiServerScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text("Port:")
+                        Text(stringResource(R.string.port))
                         OutlinedTextField(
                             value = port.toString(),
                             onValueChange = { newValue ->
@@ -192,7 +194,7 @@ fun ApiServerScreen(
                         ) {
                             Icon(Icons.Default.PlayArrow, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
-                            Text("Start")
+                            Text(stringResource(R.string.start))
                         }
 
                         Button(
@@ -205,7 +207,7 @@ fun ApiServerScreen(
                         ) {
                             Icon(Icons.Default.Stop, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
-                            Text("Stop")
+                            Text(stringResource(R.string.stop))
                         }
                     }
                 }

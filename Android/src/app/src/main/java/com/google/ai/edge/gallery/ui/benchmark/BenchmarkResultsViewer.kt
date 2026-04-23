@@ -90,6 +90,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -400,24 +401,24 @@ fun BenchmarkResultsViewer(
                               verticalArrangement = Arrangement.spacedBy(8.dp),
                               modifier = Modifier.padding(start = 6.dp, top = 6.dp, bottom = 4.dp),
                             ) {
-                              StatRow(label = "Model", value = llmResult.baiscInfo.modelName)
+                              StatRow(label = stringResource(R.string.model), value = llmResult.baiscInfo.modelName)
                               StatRow(
-                                label = "Accelerator",
+                                label = stringResource(R.string.accelerator),
                                 value = llmResult.baiscInfo.accelerator,
                               )
                               StatRow(
-                                label = "Prefill tokens",
+                                label = stringResource(R.string.prefill_tokens),
                                 value = "${llmResult.baiscInfo.prefillTokens}",
                               )
                               StatRow(
-                                label = "Decode tokens",
+                                label = stringResource(R.string.decode_tokens),
                                 value = "${llmResult.baiscInfo.decodeTokens}",
                               )
                               StatRow(
-                                label = "Number of runs",
+                                label = stringResource(R.string.number_of_runs),
                                 value = "${llmResult.baiscInfo.numberOfRuns}",
                               )
-                              StatRow(label = "App version", value = llmResult.baiscInfo.appVersion)
+                              StatRow(label = stringResource(R.string.app_version), value = llmResult.baiscInfo.appVersion)
                             }
                           }
 
@@ -499,10 +500,10 @@ fun BenchmarkResultsViewer(
                               val baselineStats =
                                 uiState.baselineResult?.benchmarkResult?.llmResult?.stats
                               ValueSeriesRow(
-                                label = "Prefill speed",
+                                label = stringResource(R.string.prefill_speed),
                                 valueSeries = llmResult.stats.prefillSpeed,
                                 aggregation = result.aggregation,
-                                unit = "tokens/sec",
+                                unit = stringResource(R.string.tokens_per_second),
                                 baselineValueSeries =
                                   if (result.id != uiState.baselineResult?.id) {
                                     baselineStats?.prefillSpeed
@@ -517,10 +518,10 @@ fun BenchmarkResultsViewer(
                                   },
                               )
                               ValueSeriesRow(
-                                label = "Decode speed",
+                                label = stringResource(R.string.decode_speed),
                                 valueSeries = llmResult.stats.decodeSpeed,
                                 aggregation = result.aggregation,
-                                unit = "tokens/sec",
+                                unit = stringResource(R.string.tokens_per_second),
                                 baselineValueSeries =
                                   if (result.id != uiState.baselineResult?.id) {
                                     baselineStats?.decodeSpeed
@@ -535,10 +536,10 @@ fun BenchmarkResultsViewer(
                                   },
                               )
                               ValueSeriesRow(
-                                label = "Time to first token",
+                                label = stringResource(R.string.time_to_first_token),
                                 valueSeries = llmResult.stats.timeToFirstToken,
                                 aggregation = result.aggregation,
-                                unit = "sec",
+                                unit = stringResource(R.string.seconds_abbrev),
                                 baselineValueSeries =
                                   if (result.id != uiState.baselineResult?.id) {
                                     baselineStats?.timeToFirstToken
@@ -554,14 +555,14 @@ fun BenchmarkResultsViewer(
                                 lessIsBetter = true,
                               )
                               StatRow(
-                                label = "First init time",
+                                label = stringResource(R.string.first_init_time),
                                 value =
                                   String.format(
                                     Locale.getDefault(),
                                     "%.2f",
                                     llmResult.stats.firstInitTimeMs,
                                   ),
-                                unit = "ms",
+                                unit = stringResource(R.string.milliseconds_abbrev),
                                 baselineValue =
                                   if (result.id != uiState.baselineResult?.id) {
                                     baselineStats?.firstInitTimeMs
@@ -625,6 +626,7 @@ fun BenchmarkResultsViewer(
 
                             // Copy
                             val clipboard = LocalClipboard.current
+                            val context = LocalContext.current
                             Button(
                               onClick = {
                                 scope.launch {
@@ -635,7 +637,7 @@ fun BenchmarkResultsViewer(
                                       aggregation = result.aggregation,
                                     )
                                   val clipData =
-                                    ClipData.newPlainText("benchmark results for ${modelName}", csv)
+                                    ClipData.newPlainText(context.getString(R.string.benchmark_results_for, modelName), csv)
                                   val clipEntry = ClipEntry(clipData = clipData)
                                   clipboard.setClipEntry(clipEntry = clipEntry)
                                 }

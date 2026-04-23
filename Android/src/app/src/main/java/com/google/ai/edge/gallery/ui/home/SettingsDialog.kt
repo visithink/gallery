@@ -152,13 +152,13 @@ fun SettingsDialog(
         // Dialog title and subtitle.
         Column {
           Text(
-            "Settings",
+            stringResource(R.string.settings),
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(bottom = 8.dp),
           )
           // Subtitle.
           Text(
-            "App version: ${BuildConfig.VERSION_NAME}",
+            stringResource(R.string.app_version, BuildConfig.VERSION_NAME),
             style = labelSmallNarrow,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.offset(y = (-6).dp),
@@ -173,7 +173,7 @@ fun SettingsDialog(
           // Theme switcher.
           Column(modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
             Text(
-              "Theme",
+              stringResource(R.string.theme),
               style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Medium),
             )
             MultiChoiceSegmentedButtonRow {
@@ -219,7 +219,7 @@ fun SettingsDialog(
             verticalArrangement = Arrangement.spacedBy(4.dp),
           ) {
             Text(
-              "HuggingFace access token",
+              stringResource(R.string.hf_access_token),
               style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Medium),
             )
             // Show the start of the token.
@@ -231,18 +231,18 @@ fun SettingsDialog(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
               )
               Text(
-                "Expires at: ${dateFormatter.format(Instant.ofEpochMilli(curHfToken.expiresAtMs))}",
+                stringResource(R.string.expires_at, dateFormatter.format(Instant.ofEpochMilli(curHfToken.expiresAtMs))),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
               )
             } else {
               Text(
-                "Not available",
+                stringResource(R.string.not_available),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
               )
               Text(
-                "The token will be automatically retrieved when a gated model is downloaded",
+                stringResource(R.string.token_auto_retrieved),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
               )
@@ -255,7 +255,7 @@ fun SettingsDialog(
                 },
                 enabled = curHfToken != null,
               ) {
-                Text("Clear")
+                Text(stringResource(R.string.clear))
               }
               val handleSaveToken = {
                 modelManagerViewModel.saveAccessToken(
@@ -296,7 +296,7 @@ fun SettingsDialog(
                     Box(modifier = Modifier.padding(start = 16.dp).weight(1f)) {
                       if (customHfToken.isEmpty()) {
                         Text(
-                          "Enter token manually",
+                          stringResource(R.string.enter_token_manually),
                           color = MaterialTheme.colorScheme.onSurfaceVariant,
                           style = MaterialTheme.typography.bodySmall,
                         )
@@ -328,7 +328,7 @@ fun SettingsDialog(
               verticalAlignment = Alignment.CenterVertically,
             ) {
               Text(
-                "API Server",
+                stringResource(R.string.api_server),
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Medium),
               )
               IconButton(
@@ -336,12 +336,12 @@ fun SettingsDialog(
               ) {
                 Icon(
                   imageVector = Icons.Rounded.Refresh,
-                  contentDescription = "Refresh model",
+                  contentDescription = stringResource(R.string.cd_refresh_model),
                 )
               }
             }
             Text(
-              "Start an OpenAI-compatible HTTP server on this device. Load a model in a chat session first, then start the server.",
+              stringResource(R.string.api_server_desc),
               style = MaterialTheme.typography.bodySmall,
               color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -356,7 +356,7 @@ fun SettingsDialog(
               horizontalArrangement = Arrangement.spacedBy(8.dp),
               verticalAlignment = Alignment.CenterVertically,
             ) {
-              Text("Port:", style = MaterialTheme.typography.bodyMedium)
+              Text(stringResource(R.string.port), style = MaterialTheme.typography.bodyMedium)
               OutlinedTextField(
                 value = apiServerPort.toString(),
                 onValueChange = { newValue ->
@@ -379,7 +379,7 @@ fun SettingsDialog(
               ) {
                 Icon(Icons.Rounded.PlayArrow, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Start")
+                Text(stringResource(R.string.start))
               }
               Button(
                 onClick = { apiServerViewModel.stopServer() },
@@ -391,7 +391,7 @@ fun SettingsDialog(
               ) {
                 Icon(Icons.Rounded.Stop, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Stop")
+                Text(stringResource(R.string.stop))
               }
             }
 
@@ -419,11 +419,11 @@ fun SettingsDialog(
                 IconButton(
                   onClick = {
                     val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    val clip = ClipData.newPlainText("API URL", apiServerUrl)
+                    val clip = ClipData.newPlainText(context.getString(R.string.api_url), apiServerUrl)
                     clipboardManager.setPrimaryClip(clip)
                   }
                 ) {
-                  Icon(Icons.Rounded.ContentCopy, contentDescription = "Copy URL")
+                  Icon(Icons.Rounded.ContentCopy, contentDescription = stringResource(R.string.copy_url))
                 }
               }
             }
@@ -432,7 +432,7 @@ fun SettingsDialog(
           // Third party licenses.
           Column(modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
             Text(
-              "Third-party libraries",
+              stringResource(R.string.third_party_libraries),
               style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Medium),
             )
             OutlinedButton(
@@ -443,7 +443,7 @@ fun SettingsDialog(
                 context.startActivity(intent)
               }
             ) {
-              Text("View licenses")
+              Text(stringResource(R.string.view_licenses))
             }
           }
 
@@ -472,10 +472,10 @@ fun SettingsDialog(
         // Button row.
         Row(
           modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-          horizontalArrangement = Arrangement.End,
+          horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
           // Close button
-          Button(onClick = { onDismissed() }) { Text("Close") }
+          Button(modifier = Modifier.weight(1f), onClick = { onDismissed() }) { Text(stringResource(R.string.close)) }
         }
       }
     }
@@ -486,11 +486,12 @@ fun SettingsDialog(
   }
 }
 
+@Composable
 private fun themeLabel(theme: Theme): String {
   return when (theme) {
-    Theme.THEME_AUTO -> "Auto"
-    Theme.THEME_LIGHT -> "Light"
-    Theme.THEME_DARK -> "Dark"
-    else -> "Unknown"
+    Theme.THEME_AUTO -> stringResource(R.string.theme_auto)
+    Theme.THEME_LIGHT -> stringResource(R.string.theme_light)
+    Theme.THEME_DARK -> stringResource(R.string.theme_dark)
+    else -> stringResource(R.string.theme_unknown)
   }
 }

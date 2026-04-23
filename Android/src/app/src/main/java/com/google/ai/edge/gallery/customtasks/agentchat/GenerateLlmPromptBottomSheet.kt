@@ -33,6 +33,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -42,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.google.ai.edge.gallery.R
@@ -108,6 +110,8 @@ fun GenerateLlmPromptBottomSheet(
   val scope = rememberCoroutineScope()
   val clipboard = LocalClipboard.current
 
+  val context = LocalContext.current
+
   LaunchedEffect(curDescription) {
     if (requirements.isBlank()) {
       onRequirementsChange(curDescription)
@@ -152,15 +156,30 @@ fun GenerateLlmPromptBottomSheet(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+          OutlinedButton(
+            modifier = Modifier.weight(1f),
+            onClick = {
+              scope.launch {
+                sheetState.hide()
+                onDismiss()
+              }
+            }
+          ) {
+            Text(stringResource(R.string.cancel))
+          }
           Button(
+            modifier = Modifier.weight(1f),
             onClick = {
               val prompt =
                 PROMPT_TEMPLATE.replace("___requirement___", requirements)
                   .replace("___input_data_schema___", inputData)
                   .replace("___output_data_schema___", outputData)
               scope.launch {
-                val clipData = ClipData.newPlainText("prompt", prompt)
+                val clipData = ClipData.newPlainText(context.getString(R.string.prompt), prompt)
                 val clipEntry = ClipEntry(clipData = clipData)
                 clipboard.setClipEntry(clipEntry = clipEntry)
                 onLlmPromptGenerated(prompt)

@@ -56,6 +56,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.SnackbarDuration
@@ -82,6 +83,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.google.ai.edge.gallery.ui.common.ErrorDialog
 import com.google.ai.edge.gallery.R
 import com.google.ai.edge.gallery.ui.theme.customColors
 import kotlinx.coroutines.CoroutineScope
@@ -89,7 +91,7 @@ import kotlinx.coroutines.launch
 
 private const val TAG = "AGAddOrEditSkill"
 private const val DEFAULT_SCRIPT_NAME = "index.html"
-private val TABS = listOf("Info", "Scripts")
+private val TABS @Composable get() = listOf(stringResource(R.string.info), stringResource(R.string.scripts))
 
 private val CALL_JS_INSTRUCTIONS_TEMPLATE =
   """
@@ -423,13 +425,9 @@ fun AddOrEditSkillBottomSheet(
   }
 
   if (showErrorDialog) {
-    AlertDialog(
-      onDismissRequest = { showErrorDialog = false },
-      title = { Text(stringResource(R.string.failed_to_save)) },
-      text = { Text(errorMessage) },
-      confirmButton = {
-        Button(onClick = { showErrorDialog = false }) { Text(stringResource(R.string.ok)) }
-      },
+    ErrorDialog(
+      error = errorMessage,
+      onDismiss = { showErrorDialog = false },
     )
   }
 
@@ -439,29 +437,36 @@ fun AddOrEditSkillBottomSheet(
       title = { Text(stringResource(R.string.discard_changes_dialog_title)) },
       text = { Text(stringResource(R.string.discard_changes_dialog_content)) },
       confirmButton = {
-        Button(
-          onClick = {
-            cancelClicked = true
-            scope.launch {
-              sheetState.hide()
-              onDismiss()
-            }
-            showDiscardDialog = false
-          },
-          colors =
-            ButtonDefaults.buttonColors(
-              containerColor = MaterialTheme.customColors.errorTextColor,
-              contentColor = Color.White,
-            ),
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-          Text(stringResource(R.string.discard))
+          OutlinedButton(
+            modifier = Modifier.weight(1f),
+            onClick = { showDiscardDialog = false }
+          ) {
+            Text(stringResource(R.string.cancel))
+          }
+          Button(
+            modifier = Modifier.weight(1f),
+            onClick = {
+              cancelClicked = true
+              scope.launch {
+                sheetState.hide()
+                onDismiss()
+              }
+              showDiscardDialog = false
+            },
+            colors =
+              ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.customColors.errorTextColor,
+                contentColor = Color.White,
+              ),
+          ) {
+            Text(stringResource(R.string.discard))
+          }
         }
-      },
-      dismissButton = {
-        TextButton(onClick = { showDiscardDialog = false }) {
-          Text(stringResource(R.string.cancel))
-        }
-      },
+      }
     )
   }
 }
@@ -654,23 +659,30 @@ private fun ScriptsTabContent(
         )
       },
       confirmButton = {
-        Button(
-          onClick = {
-            val trimmedName = newScriptName.trim()
-            onScriptAdded(trimmedName)
-            newScriptName = ""
-            showAddScriptDialog = false
-          },
-          enabled = !scriptContents.containsKey(newScriptName) && newScriptName.isNotBlank(),
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-          Text(stringResource(R.string.add))
+          OutlinedButton(
+            modifier = Modifier.weight(1f),
+            onClick = { showAddScriptDialog = false }
+          ) {
+            Text(stringResource(R.string.cancel))
+          }
+          Button(
+            modifier = Modifier.weight(1f),
+            onClick = {
+              val trimmedName = newScriptName.trim()
+              onScriptAdded(trimmedName)
+              newScriptName = ""
+              showAddScriptDialog = false
+            },
+            enabled = !scriptContents.containsKey(newScriptName) && newScriptName.isNotBlank(),
+          ) {
+            Text(stringResource(R.string.add))
+          }
         }
-      },
-      dismissButton = {
-        TextButton(onClick = { showAddScriptDialog = false }) {
-          Text(stringResource(R.string.cancel))
-        }
-      },
+      }
     )
   }
 
@@ -679,27 +691,34 @@ private fun ScriptsTabContent(
     AlertDialog(
       onDismissRequest = { showDeleteConfirmation = false },
       title = { Text(stringResource(R.string.delete_script_dialog_title)) },
-      text = { Text("Are you sure you want to delete '$selectedScript'?") },
+      text = { Text(stringResource(R.string.confirm_delete_script, selectedScript ?: "")) },
       confirmButton = {
-        Button(
-          onClick = {
-            selectedScript?.let { curSelectedScript -> onScriptDeleted(curSelectedScript) }
-            showDeleteConfirmation = false
-          },
-          colors =
-            ButtonDefaults.buttonColors(
-              containerColor = MaterialTheme.customColors.errorTextColor,
-              contentColor = Color.White,
-            ),
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-          Text(stringResource(R.string.delete))
+          OutlinedButton(
+            modifier = Modifier.weight(1f),
+            onClick = { showDeleteConfirmation = false }
+          ) {
+            Text(stringResource(R.string.cancel))
+          }
+          Button(
+            modifier = Modifier.weight(1f),
+            onClick = {
+              selectedScript?.let { curSelectedScript -> onScriptDeleted(curSelectedScript) }
+              showDeleteConfirmation = false
+            },
+            colors =
+              ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.customColors.errorTextColor,
+                contentColor = Color.White,
+              ),
+          ) {
+            Text(stringResource(R.string.delete))
+          }
         }
-      },
-      dismissButton = {
-        TextButton(onClick = { showDeleteConfirmation = false }) {
-          Text(stringResource(R.string.cancel))
-        }
-      },
+      }
     )
   }
 

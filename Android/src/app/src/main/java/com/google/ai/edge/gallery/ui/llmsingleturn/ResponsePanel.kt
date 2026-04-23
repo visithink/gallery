@@ -167,7 +167,7 @@ fun ResponsePanel(
               IconButton(
                 onClick = {
                   scope.launch {
-                    val clipData = ClipData.newPlainText("response", response)
+                    val clipData = ClipData.newPlainText(context.getString(R.string.response), response)
                     val clipEntry = ClipEntry(clipData = clipData)
                     clipboard.setClipEntry(clipEntry = clipEntry)
                   }

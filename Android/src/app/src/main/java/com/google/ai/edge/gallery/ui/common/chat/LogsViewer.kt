@@ -94,7 +94,7 @@ fun LogsViewer(logs: List<LogMessage>, onDismissRequest: () -> Unit) {
             }
           }
         ) {
-          Icon(Icons.Filled.Close, contentDescription = "Close viewer")
+          Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.close_viewer))
         }
       }
 
@@ -113,12 +113,12 @@ fun LogsViewer(logs: List<LogMessage>, onDismissRequest: () -> Unit) {
         singleLine = true,
         leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
         trailingIcon = {
-          if (filterText.isNotEmpty()) {
-            IconButton(onClick = { filterText = "" }) {
-              Icon(Icons.Outlined.Cancel, contentDescription = "Clear filter")
+            if (filterText.isNotEmpty()) {
+              IconButton(onClick = { filterText = "" }) {
+                Icon(Icons.Outlined.Cancel, contentDescription = stringResource(R.string.clear_filter))
+              }
             }
-          }
-        },
+          },
         colors =
           TextFieldDefaults.colors(
             focusedIndicatorColor = Color.Transparent,

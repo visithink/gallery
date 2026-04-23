@@ -39,6 +39,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -194,7 +195,7 @@ fun ModelImportDialog(
       ) {
         // Title.
         Text(
-          "Import Model",
+          stringResource(R.string.import_model_title),
           style = MaterialTheme.typography.titleLarge,
           modifier = Modifier.padding(bottom = 8.dp),
         )
@@ -210,13 +211,14 @@ fun ModelImportDialog(
         // Button row.
         Row(
           modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-          horizontalArrangement = Arrangement.End,
+          horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
           // Cancel button.
-          TextButton(onClick = { onDismiss() }) { Text("Cancel") }
+          OutlinedButton(modifier = Modifier.weight(1f), onClick = { onDismiss() }) { Text(stringResource(R.string.cancel)) }
 
           // Import button
           Button(
+            modifier = Modifier.weight(1f),
             onClick = {
               val supportedAccelerators =
                 (convertValueToTargetType(
@@ -301,7 +303,7 @@ fun ModelImportDialog(
               onDone(importedModel)
             }
           ) {
-            Text("Import")
+            Text(stringResource(R.string.import_model))
           }
         }
       }
@@ -346,7 +348,7 @@ fun ModelImportingDialog(
       ) {
         // Title.
         Text(
-          "Import Model",
+          stringResource(R.string.import_model_title),
           style = MaterialTheme.typography.titleLarge,
           modifier = Modifier.padding(bottom = 8.dp),
         )
@@ -356,7 +358,7 @@ fun ModelImportingDialog(
           // Progress bar.
           Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
-              "${info.fileName} (${info.fileSize.humanReadableSize()})",
+              stringResource(R.string.import_model_progress, info.fileName, info.fileSize.humanReadableSize()),
               style = MaterialTheme.typography.labelSmall,
             )
             val animatedProgress = remember { Animatable(0f) }
@@ -388,7 +390,7 @@ fun ModelImportingDialog(
             )
           }
           Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            Button(onClick = { onDismiss() }) { Text("Close") }
+            Button(onClick = { onDismiss() }) { Text(stringResource(R.string.close)) }
           }
         }
       }
